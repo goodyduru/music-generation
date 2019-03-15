@@ -62,6 +62,32 @@ def create_model(input_shape, n_vocab):
     model = Model(inputs=x, outputs=out)
     return model
 
+def predict(model, network_input, notes, n_vocab, num_notes = 500):
+    pitchnames = sorted(set(item for item in notes))
+
+    int_to_note = dict((number, note) for number, note in enumerate(pitchnames))
+
+    start = np.random.randint(0, network_input.shape[0] - 1)
+    pattern = network_input[start].aslist()
+    pattern_length = len(pattern)
+
+    prediction_output = []
+
+    for index in range(num_notes):
+        prediction_input = np.reshape(pattern, (1, pattern_length, 1))
+        prediction_input = prediction_input / float(n_vocab)
+
+        prediction = model.predict(prediction_input)
+
+        note = np.argmax(prediction)
+        result = int_to_note[note]
+        prediction_output.append(result)
+
+        pattern.append(result)
+        pattern = pattern[-pattern_length:]
+    return prediction_output
+
+
 if __name__ == "__main__":
     notes = get_notes()
     n_vocab = len(set(notes))
