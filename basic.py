@@ -2,6 +2,8 @@ import glob
 import numpy as np
 
 from keras.utils import np_utils
+from keras.layers import Input, LSTM, Dense, Dropout
+from keras.models import Model
 from music21 import converter, chord, note, instrument
 
 def get_notes():
@@ -24,9 +26,8 @@ def get_notes():
                 notes.append('.'.join(str(n) for n in element.normalOrder))
     return notes
 
-def create_datset(notes, sequence_length=100):
+def create_datset(notes, n_vocab, sequence_length=100):
     pitchnames = sorted(set(item for item in notes))
-    n_vocab = len(pitchnames)
 
     note_to_int = dict((note, number) for number, note in enumerate(pitchnames))
 
@@ -48,8 +49,25 @@ def create_datset(notes, sequence_length=100):
     network_output = np_utils.to_categorical(network_output)
     return (network_input, network_output)
 
+def create_model(input_shape, n_vocab):
+    x = Input(shape=input_shape)
+    out = LSTM(256, return_sequences=True)(x)
+    out = Dropout(0.3)(out)
+    out = LSTM(512, return_sequences=True)(out)
+    out = Dropout(0.3)(out)
+    out = LSTM(256)(out)
+    out = Dense(256)(out)
+    out = Dropout(0.3)(out)
+    out = Dense(n_vocab, activation='softmax')(out)
+    model = Model(inputs=x, outputs=out)
+    return model
 
 if __name__ == "__main__":
     notes = get_notes()
-    network_input, network_output = create_datset(notes)
+    n_vocab = len(set(notes))
+    print(n_vocab)
+    network_input, network_output = create_datset(notes, n_vocab)
     print(network_input.shape, network_output.shape)
+    sequence, end = network_input.shape[1], network_input.shape[2]
+    model = create_model((sequence, end), n_vocab)
+    print(model.summary())
