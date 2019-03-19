@@ -70,28 +70,26 @@ def predict(model, network_input, notes, n_vocab, num_notes = 500):
     pitchnames = sorted(set(item for item in notes))
 
     int_to_note = dict((number, element) for number, element in enumerate(pitchnames))
-
-    start = np.random.randint(0, network_input.shape[0] - 1)
-    pattern = network_input[start].aslist()
+    network_input = network_input.tolist()
+    start = np.random.randint(0, len(network_input) - 1)
+    pattern = network_input[start]
     pattern_length = len(pattern)
 
     prediction_output = []
 
     for _ in range(num_notes):
-        prediction_input = np.reshape(pattern, (1, pattern_length, 1))
-        prediction_input = prediction_input / float(n_vocab)
-
+        prediction_input = np.reshape(pattern, (1, len(pattern), 1))
         prediction = model.predict(prediction_input)
 
         predicted_note = np.argmax(prediction)
         result = int_to_note[predicted_note]
         prediction_output.append(result)
 
-        pattern.append(result)
-        pattern = pattern[-pattern_length:]
+        pattern.append([predicted_note/n_vocab])
+        pattern = pattern[1:len(pattern)]
     return prediction_output
 
-def generate_mid(prediction_output):
+def generate_mid(prediction_output, filename='generated.mid'):
     offset = 0
     output = []
 
@@ -115,7 +113,7 @@ def generate_mid(prediction_output):
             output.append(new_note)
         offset += 0.5
     midi_stream = stream.Stream(output)
-    midi_stream.write('midi', fp='generated.mid')
+    midi_stream.write('midi', fp='./generated/' + filename)
 
 
 if __name__ == "__main__":
